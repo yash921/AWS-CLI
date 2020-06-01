@@ -25,7 +25,7 @@ __     __             __
 
 ~ VPC part--> 
 
-$ aws ec2 create-vpc --cidr-block 172.168.0.0/16      ####It will create a vpc with your specified cidr-range, also it has 2^16 ips addresses.
+$ aws ec2 create-vpc --cidr-block 172.168.0.0/16      ####It will create a vpc with your specified cidr-range, also it has 2^16 ip addresses.
 
 $ aws ec2 describe-vpc       ####Now copy the vpc-id, It will be used for tagging.
 
