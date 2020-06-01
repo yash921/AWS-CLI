@@ -1,0 +1,377 @@
+<===============================================================================================================================================>
+<===============================================================================================================================================> 
+ _   _                 _                              _       
+| | | | _____      __ | |_ ___     ___ _ __ ___  __ _| |_ ___ 
+| |_| |/ _ \ \ /\ / / | __/ _ \   / __| '__/ _ \/ _` | __/ _ \
+|  _  | (_) \ V  V /  | || (_) | | (__| | |  __/ (_| | ||  __/
+|_| |_|\___/ \_/\_/    \__\___/   \___|_|  \___|\__,_|\__\___|
+                                                              
+__     __             __                     
+\ \   / / __   ___   / _|_ __ ___  _ __ ___  
+ \ \ / / '_ \ / __| | |_| '__/ _ \| '_ ` _ \ 
+  \ V /| |_) | (__  |  _| | | (_) | | | | | |
+   \_/ | .__/ \___| |_| |_|  \___/|_| |_| |_|
+       |_|                                   
+    ___        ______     ____ _     ___ 
+   / \ \      / / ___|   / ___| |   |_ _|
+  / _ \ \ /\ / /\___ \  | |   | |    | | 
+ / ___ \ V  V /  ___) | | |___| |___ | | 
+/_/   \_\_/\_/  |____/___\____|_____|___|
+                    |_____|          
+
+<===============================================================================================================================================>
+<===============================================================================================================================================>
+-----------------------
+
+~ VPC part--> 
+
+$ aws ec2 create-vpc --cidr-block 172.168.0.0/16      ####It will create a vpc with your specified cidr-range, also it has 2^16 ips addresses.
+
+$ aws ec2 describe-vpc       ####Now copy the vpc-id, It will be used for tagging.
+
+$ aws ec2 create-tags --resources vpc-04abd38849653f454  --tags key=name,value=cli-vpc   
+------------------------
+
+
+
+
+
+~ Subnet part-->
+
+$ aws ec2 create-subnets --cidr-block 172.168.1.0/24   
+
+$ aws ec2 create-tags --resources subnet-0133f228392e26212   --tags Key=Name,Value=cli-public-subnet    ####THis will be our Public-subnet
+
+$ aws ec2 create-subnet --vpc-id vpc-04abd38849653f454  --cidr-block 172.168.2.0/24
+
+$ aws ec2 create-tags --resources subnet-09a943425d7092a90 --tags Key=Name,Value=cli-private-subnet    ####Private-subnet
+-------------------------
+
+
+
+
+
+
+~ Internet-gateway part-->
+
+$ aws ec2 create-internet-gateway  
+
+$ aws ec2 create-tags --resources igw-0b7375ce29e9ed828 --tags Key=Name,Value=cli-internet-gateway
+--------------------------
+
+
+
+
+~ Attaching Internet-gateway to Vpc-->
+
+$ aws ec2 attach-internet-gateway --internet-gateway-id igw-0b7375ce29e9ed828 --vpc-id vpc-04abd38849653f454
+--------------------------
+
+
+
+
+
+
+
+
+~ Elastic IP For Nat-gateway-->
+
+$ aws ec2 allocate-address --domain vpc   
+
+$ aws ec2 create-tags --resources ${NatGatewayId} --tags Key=Name,Value=cli-nat-gateway
+--------------------------
+
+
+
+
+
+
+
+~ Nat-gateway in public_subnet with EIP-->
+
+$ aws ec2 create-nat-gateway --subnet-id ${Public_subnet_id} --allocation-id ${Elastic_ip_id} 
+--------------------------
+
+
+
+
+
+
+
+~ Route-Table for Public and Private subnet-->
+
+$ aws ec2 create-route-table --vpc-id vpc-04abd38849653f454  				####Public_subnet
+
+$ aws ec2 create-tags --resources rtb-00ef021e88cc8dc55  --tags Key=Name,Value=cli-PublicRouteTable    ####Public_subnet
+
+$ aws ec2 create-route-table --vpc-id vpc-04abd38849653f454		####Private_subnet
+
+$ aws ec2 create-tags --resources rtb-0ef5348959bfac89d   --tags Key=Name,Value=cli-PrivateRouteTable     ####Private_subnet
+---------------------------
+
+
+
+
+
+
+
+~ Setting-Up route in route-table for public-subnet-->
+
+$ aws ec2 create-route --route-table-id rtb-00ef021e88cc8dc55  --destination-cidr-block 0.0.0.0/0 --gateway-id igw-0b7375ce29e9ed828
+---------------------------
+
+
+~ route for private-subnet-->
+
+$ aws ec2 create-route --route-table-id ${private_route_table_id}  --destination-cidr-block 0.0.0.0/0 --gateway-id ${NAT_gateway_id}
+---------------------------
+
+
+
+
+
+
+
+
+
+~ public-subnet association with public-route-table -->
+
+$ aws ec2 associate-route-table --route-table-id rtb-00ef021e88cc8dc55 --subnet-id subnet-0133f228392e26212
+---------------------------
+
+
+~ private-subnet association with private-route-table-->
+
+$ aws ec2 associate-route-table --route-table-id ${Private_route_table_id} --subnet-id ${Private_subnet_id}
+---------------------------
+
+
+
+
+
+~ Security-group-->
+
+$ aws ec2 create-security-group --group-name MySecurityGroup --description "My security group" --vpc-id vpc-04abd38849653f454
+
+$ aws ec2 create-tags --resources sg-047bea73963225d2a    --tags Key=Name,Value=cli-security-GR
+----------------------------
+
+
+
+
+
+
+
+
+~ Security-group ingress and egress rule-->
+
+$  aws ec2 authorize-security-group-ingress \ 
+              --group-id  sg-047bea73963225d2a \
+              --protocol tcp \
+              --port 22 \
+              --cidr 0.0.0.0/0
+
+
+$ aws ec2 authorize-security-group-ingress \ 
+              --group-id  sg-047bea73963225d2a \
+              --protocol tcp \
+              --port 80 \
+              --cidr 0.0.0.0/0
+
+--------------------------
+
+
+
+
+
+~ Key-pair-->
+
+$ aws ec2 create-key-pair --key-name MyKeyPair --query 'KeyMaterial' --output text > MyKeyPair.pem
+--------------------------
+
+
+
+
+
+~ How to launch instance from CLi-->
+
+$ aws ec2 run-instances --image-id ami-005956c5f0f757d37 \                                           
+              --count 1 \
+              --instance-type t2.micro \
+              --key-name MyKeyPair \
+              --security-group-ids sg-047bea73963225d2a \
+              --subnet-id subnet-0133f228392e26212 \
+              --associate-public-ip-address					//It will assign the public ip
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+~
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
