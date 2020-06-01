@@ -1,0 +1,91 @@
+<==============================================================================================================================================>
+<==============================================================================================================================================>
+
+ ____               _     _              _     _____ ____ ____  
+|  _ \ ___ _ __ ___(_)___| |_ __ _ _ __ | |_  | ____| __ ) ___| 
+| |_) / _ \ '__/ __| / __| __/ _` | '_ \| __| |  _| |  _ \___ \ 
+|  __/  __/ |  \__ \ \__ \ || (_| | | | | |_  | |___| |_) |__) |
+|_|   \___|_|  |___/_|___/\__\__,_|_| |_|\__| |_____|____/____/ 
+                                                                
+
+<==============================================================================================================================================>
+<==============================================================================================================================================>
+
+~ How to launch instance from CLi-->
+
+$ aws ec2 run-instances --image-id ami-005956c5f0f757d37 \                                           
+              --count 1 \
+              --instance-type t2.micro \
+              --key-name MyKeyPair \
+              --security-group-ids sg-047bea73963225d2a \
+              --subnet-id subnet-0133f228392e26212 \
+              --associate-public-ip-address					//It will assign the public ip
+
+------------------------------------
+
+~ Create Volume-->
+
+$ aws ec2 create-volume \           
+  --volume-type gp2 \ 
+  --size 1    \                     ###Size in GB
+  --availability-zone ap-south-1a \
+
+-------------------------------------
+
+~ Attach volume-->
+
+$ aws ec2 attach-volume \
+  --volume-id vol-0976f079dd67590a4 \  
+  --instance-id  i-02269143d845caca2 \
+   --device /dev/sdf
+
+
+-------------------------------------
+
+~ creating partion-->
+ 
+$ fdisk -l
+
+$ fdisk /dev/xvdf
+
+$ mkfs.ext4 /dev/xvdf1
+
+$ mount /dev/xvdf1 /var/www/httml
+
+
+-------------------------------------
+
+~ Security-group ingress and egress rule-->
+
+$  aws ec2 authorize-security-group-ingress \ 
+              --group-id  sg-047bea73963225d2a \
+              --protocol tcp \
+              --port 22 \
+              --cidr 0.0.0.0/0
+
+
+$ aws ec2 authorize-security-group-ingress \ 
+              --group-id  sg-047bea73963225d2a \
+              --protocol tcp \
+              --port 80 \
+              --cidr 0.0.0.0/0
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
