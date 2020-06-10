@@ -1,0 +1,33 @@
+---
+- name: Create Partition
+  hosts: localhost
+  remote_user: yash
+  become: yes
+
+  tasks:
+  - name: Create 1GB partition
+    parted:
+      device: /dev/sdb
+      number: 1
+      state: present
+      part_start: 2MiB
+      part_end: 2GiB
+
+  - name: format the Disk
+    filesystem:
+      fstype: ext4
+      dev: /dev/sdb1
+
+  - name: Create Directory
+    file:
+      path: /var/www/html
+      state: directory
+      mode: '0755'
+
+  - name: Mount Partition
+    mount:
+      path: /var/www/html
+      src: /dev/sdb1
+      fstype: ext4
+      state: mounted
+...
